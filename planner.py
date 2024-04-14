@@ -39,7 +39,7 @@ class Base_Planner(ABC):
             self.llm_url = 'http://localhost:8000/v1/chat/completions'
             # self.llm_model = "chatglm_Turbo"
             # self.llm_url = 'http://10.109.116.3:6000/chat'
-            self.plans_dict = []
+            self.plans_dict = {}
             if self.llm_model == 'Teacher':
                 self.init_llm()
         
@@ -133,7 +133,9 @@ class Base_Planner(ABC):
         text = self.mediator.RL2LLM(obs)
         l_choices = self.choices[text]
         s_choices = ", ".join(l_choices)
-        addion_string = f"Choose the next rational action from {s_choices}"
+        addition_string = f"Choose the next rational action from {s_choices}"
+        text += addition_string
+        print(f"text: {text}")
         plans, probs = self.plan(text)
         self.dialogue_user = text + "\n" + str(plans) + "\n" + str(probs)
         if self.show_dialogue:
