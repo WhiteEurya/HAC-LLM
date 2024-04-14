@@ -88,6 +88,7 @@ class Base_Planner(ABC):
                     data = {'model': self.llm_model, "prompt":[{"role": "user", "content": self.prompt_prefix + prompt_text}]}     
                 elif self.llm_model == 'Teacher':
                     data = {'model': self.llm_model, "messages":[{"role": "user", "content": prompt_text}]}
+                    print(f"input: {prompt_text}")
                 response = requests.post(self.llm_url, headers=headers, json=data)
 
                 if response.status_code == 200:
@@ -101,8 +102,11 @@ class Base_Planner(ABC):
                 print(f"fail to query: {e}")
 
         try:
-            plan = re.search("Action[s]*\:\s*\{([\w\s\<\>\,]*)\}", result, re.I | re.M).group(1)
-            return plan
+            choices = result['choices'][0]
+            message = choices['message']
+            content = message['content']
+            # plan = re.search("Action[s]*\:\s*\{([\w\s\<\>\,]*)\}", content, re.I | re.M).group(1)
+            return content
         except:
             print(f"LLM response invalid format: '{result}'.")
             return self.query_codex(prompt_text)   
@@ -132,10 +136,13 @@ class Base_Planner(ABC):
         # self.mediator.reset()
         text = self.mediator.RL2LLM(obs)
         l_choices = self.choices[text]
-        s_choices = ", ".join(l_choices)
-        addition_string = f"Choose the next rational action from {s_choices}"
+        s_choices = '['
+        for i in l_choices:
+            i = f"'{i}', "
+            s_choices += i
+        s_choices += ']'
+        addition_string = f"Choose the next rational action from {s_choices}."
         text += addition_string
-        print(f"text: {text}")
         plans, probs = self.plan(text)
         self.dialogue_user = text + "\n" + str(plans) + "\n" + str(probs)
         if self.show_dialogue:
