@@ -88,7 +88,6 @@ class Base_Planner(ABC):
                     data = {'model': self.llm_model, "prompt":[{"role": "user", "content": self.prompt_prefix + prompt_text}]}     
                 elif self.llm_model == 'Teacher':
                     data = {'model': self.llm_model, "messages":[{"role": "user", "content": prompt_text}]}
-                    print(f"input: {prompt_text}")
                 response = requests.post(self.llm_url, headers=headers, json=data)
 
                 if response.status_code == 200:
@@ -179,6 +178,24 @@ class ColoredDoorKey_Planner(Base_Planner):
     def __init__(self, offline, soft, prefix):
         super().__init__(offline, soft, prefix)
         self.mediator = ColoredDoorKey_Mediator(soft)
+
+        self.choices = {
+            "Agent sees <nothing>, holds <nothing>."       : ["explore"],
+            "Agent sees <nothing>, holds <color1 key>."    : ["explore","go to east"],
+            "Agent sees <color1 key>, holds <nothing>."    : ["go to <color1 key>, pick up <color1 key>","pick up <color1 key>"],
+            "Agent sees <color1 door>, holds <nothing>."   : ["explore"],
+            "Agent sees <color1 door>, holds <color1 key>.": ["go to <color1 door>, open <color1 door>","open <color1 door>"],
+            "Agent sees <color1 door>, holds <color2 key>.": ["explore", "go to <color2 key>"],
+            "Agent sees <color1 key>, holds <color2 key>.": ["drop <color2 key>, go to <color1 key>, pick up <color1 key>","drop <color2 key>, pick up <color1 key>"],
+            "Agent sees <color1 key>, <color2 key>, holds <nothing>.": ["go to <color1 key>, pick up <color1 key>","pick up <color1 key>"],
+            "Agent sees <color1 key>, <color2 door>, holds <nothing>.": ["go to <color1 key>, pick up <color1 key>","pick up <color1 key>"],
+            "Agent sees <color1 key>, <color1 door>, holds <nothing>.": ["go to <color1 key>, pick up <color1 key>","pick up <color1 key>"],
+            "Agent sees <color1 key>, <color1 door>, holds <color2 key>.": ["drop <color2 key>, go to <color1 key>, pick up <color1 key>","drop <color2 key>, pick up <color1 key>"],
+            "Agent sees <color1 key>, <color2 door>, holds <color2 key>.": ["drop <color2 key>, go to <color1 key>, pick up <color1 key>", "go to <color2 door>, open <color2 door>"],
+            "Agent sees <color1 key>, <color2 key>, <color2 door>, holds <nothing>.": ["go to <color2 key>, pick up <color2 key>","pick up <color2 key>","go to <color1 key>, pick up <color1 key>"],
+            "Agent sees <color1 key>, <color2 key>, <color1 door>, holds <nothing>.": ["go to <color1 key>, pick up <color1 key>"," pick up <color1 key>"],
+        }
+        
         if offline:
             self.plans_dict = {
                 "Agent sees <nothing>, holds <nothing>."       : [["explore"],[1]],
@@ -195,7 +212,7 @@ class ColoredDoorKey_Planner(Base_Planner):
                 "Agent sees <color1 key>, <color2 door>, holds <color2 key>.": [["drop <color2 key>, go to <color1 key>, pick up <color1 key>", "go to <color2 door>, open <color2 door>"],[0.71,0.29]],
                 "Agent sees <color1 key>, <color2 key>, <color2 door>, holds <nothing>.": [["go to <color2 key>, pick up <color2 key>","pick up <color2 key>","go to <color1 key>, pick up <color1 key>"],[0.72,0.24,0.04]],
                 "Agent sees <color1 key>, <color2 key>, <color1 door>, holds <nothing>.": [["go to <color1 key>, pick up <color1 key>"," pick up <color1 key>"],[0.94,0.06]],
-}
+            }
         
     def plan(self, text):
         pattern= r'\b(blue|green|grey|purple|red|yellow)\b'
@@ -223,6 +240,17 @@ class TwoDoor_Planner(Base_Planner):
     def __init__(self, offline, soft, prefix):
         super().__init__(offline, soft, prefix)
         self.mediator = TwoDoor_Mediator(soft)
+        self.choices = {
+            "Agent sees <nothing>, holds <nothing>." : ["explore"],
+            "Agent sees <door1>, holds <nothing>."  : ["explore"], 
+            "Agent sees <key>, holds <nothing>."   : ["go to <key>, pick up <key>"],
+            "Agent sees <nothing>, holds <key>."     : ["explore"],
+            "Agent sees <door1>, holds <key>."        : ["go to <door1>, open <door1>"], 
+            "Agent sees <key>, <door1>, holds <nothing>." : ["go to <key>, pick up <key>"], 
+            "Agent sees <door1>, <door2>, holds <nothing>."  : ["explore"],
+            "Agent sees <key>, <door1>, <door2>, holds <nothing>.": ["go to <key>, pick up <key>"], 
+            "Agent sees <door1>, <door2>, holds <key>.": ["go to <door1>, open <door1>", "go to <door2>, open <door2>"]
+        }
         if offline:
             self.plans_dict = {
                 "Agent sees <nothing>, holds <nothing>." : [["explore"], [1.0]],
