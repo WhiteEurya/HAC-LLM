@@ -199,15 +199,17 @@ class Game:
                 # get action from student policy
                 dist, value, states = self.student_policy(torch.Tensor(obs).to(self.device),
                                                           mask, states)
-                print("student_dist:", dist)
+                student_logits = dist.logits
+                print("student_logits:", student_logits)
 
                 # get action from teacher policy
                 teacher_probs = self.teacher_policy(obs[0])
                 teacher_probs = torch.tensor(teacher_probs)
                 print("teacher_probs:", teacher_probs)
-                guided_dist = dist + teacher_probs.unsqueeze(0)
-                guided_dist = torch.softmax(guided_dist, dim=-1)
                 
+                guided_dist = student_logits + teacher_probs.unsqueeze(0)
+                guided_dist = torch.softmax(guided_dist, dim=-1)
+                guided_dist =  torch.distributions.Categorical(logits=guided_dist)
                 
                 print("guided_dist:", guided_dist)
 
