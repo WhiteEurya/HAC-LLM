@@ -11,10 +11,13 @@ os.system('rm tmp.txt')
 import torch
 import utils
 from Game import Game
+import datetime
     
 def train(args):
     for i in args.seed_list:
-        args.savedir = args.savedir + "-" + str(i)
+        current_time = datetime.datetime.now()
+        formatted_time = current_time.strftime("%m-%d_%H:%M")
+        args.savedir = args.savedir + "-" + str(i) + formatted_time
         args.seed = i
         game = Game(args)
         game.train()

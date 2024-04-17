@@ -199,12 +199,15 @@ class Game:
                 # get action from student policy
                 dist, value, states = self.student_policy(torch.Tensor(obs).to(self.device),
                                                           mask, states)
-                action = dist.sample()
-                log_probs = dist.log_prob(action)
-                action = action.to("cpu").numpy()
                 
                 # get action from teacher policy
                 teacher_probs = self.teacher_policy(obs[0])
+                print("teacher_probs:", teacher_probs)
+                print("student_dist:", dist)
+
+                action = dist.sample()
+                log_probs = dist.log_prob(action)
+                action = action.to("cpu").numpy()
                 
                 # interact with env
                 next_obs, reward, done, info = self.env.step(action)
