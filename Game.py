@@ -30,6 +30,10 @@ class Game:
         # init seed
         self.seed = args.seed
         self.setup_seed(args.seed)
+        self.train_step = 0
+        # The discount factor of guidance
+        self.lam = 1
+        self.epsilon = 1e-2
         
         # init env
         self.load_task_info(args.task, args.frame_stack, args.offline_planner, args.soft_planner)
@@ -116,6 +120,7 @@ class Game:
             self.total_steps += total_steps
 
             ## training ##
+            self.train_step += 1
             optimizer_start = time.time()
             mean_losses = self.student_policy.update_policy(self.buffer)
             opt_time = time.time() - optimizer_start
@@ -123,6 +128,10 @@ class Game:
                 print("{:.2f} s to optimizer| loss {:6.3f}, entropy {:6.3f}, kickstarting {:6.3f}.".format(opt_time, mean_losses[0], mean_losses[1], mean_losses[2]))
             except:
                 print(mean_losses)
+
+            # update lam
+            if self.train_step % 10 == 0:
+                self.lam = self.lam * 0.9
 
             ## evaluate ##
             if itr % self.eval_interval == 0 and itr > 0:
@@ -199,17 +208,18 @@ class Game:
                 # get action from student policy
                 dist, value, states = self.student_policy(torch.Tensor(obs).to(self.device),
                                                           mask, states)
-                student_logits = dist.logits
-
                 # get action from teacher policy
                 teacher_probs = self.teacher_policy(obs[0])
-                teacher_probs_tensor = torch.tensor(teacher_probs, device=student_logits.device)
 
-                guided_dist = student_logits + teacher_probs_tensor.unsqueeze(0)
-                guided_dist = torch.softmax(guided_dist, dim=-1)
-                guided_dist =  torch.distributions.Categorical(logits=guided_dist)
+                if self.lam > self.epsilon:
+                    student_logits = dist.logits
+                    teacher_probs_tensor = torch.tensor(teacher_probs, device=student_logits.device)
+                    guided_dist = student_logits + teacher_probs_tensor.unsqueeze(0)
+                    guided_dist = torch.softmax(guided_dist, dim=-1)
+                    guided_dist =  torch.distributions.Categorical(logits=guided_dist)
+                    dist = guided_dist
 
-                action = guided_dist.sample()
+                action = dist.sample()
                 log_probs = dist.log_prob(action)
                 action = action.to("cpu").numpy()
                 
