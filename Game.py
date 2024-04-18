@@ -203,9 +203,9 @@ class Game:
 
                 # get action from teacher policy
                 teacher_probs = self.teacher_policy(obs[0])
-                teacher_probs = torch.tensor(teacher_probs, device=student_logits.device)
+                teacher_probs_tensor = torch.tensor(teacher_probs, device=student_logits.device)
 
-                guided_dist = student_logits + teacher_probs.unsqueeze(0)
+                guided_dist = student_logits + teacher_probs_tensor.unsqueeze(0)
                 guided_dist = torch.softmax(guided_dist, dim=-1)
                 guided_dist =  torch.distributions.Categorical(logits=guided_dist)
 
